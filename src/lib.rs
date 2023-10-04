@@ -1,13 +1,18 @@
 use thiserror::Error;
 
 pub mod eth;
+pub mod usb;
 
 /// Common error type for any kind transactional errors (communication, decoding, etc.)
 #[derive(Error, Debug)]
 pub enum TransactionError {
     /// Connection to the power supply failed
-    #[error("Connection error")]
-    Connection(#[from] std::io::Error),
+    #[error("Ethernet connection error")]
+    EthConnection(#[from] std::io::Error),
+
+    /// Connection to the power supply failed
+    #[error("Serial connection error")]
+    UsbConnection(#[from] serialport::Error),
 
     /// The response from the power supply was invalid
     #[error("Failed to parse UPS response")]
@@ -20,6 +25,10 @@ pub enum TransactionError {
     /// Transmitting our request (command or query) failed
     #[error("Request failed")]
     RequestFailed,
+
+    /// Invalid device configuration or parameter
+    #[error("Invalid configuration: {0}")]
+    InvalidConfiguration(String),
 }
 
 /// Result type for any kind of transaction (command or query) with the power supply
