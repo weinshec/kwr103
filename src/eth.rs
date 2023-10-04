@@ -171,7 +171,10 @@ impl Kwr103Eth {
     /// ```
     pub fn query<C: UdpQuery>(&self) -> Result<C> {
         let mut buf = [0; 512];
-        self.socket.send(&C::serialize())?;
+        let payload = C::serialize();
+        if self.socket.send(&payload)? != payload.len() {
+            return Err(TransactionError::RequestFailed);
+        }
         let n = self.socket.recv(&mut buf)?;
         C::deserialize(&buf[..n])
     }
