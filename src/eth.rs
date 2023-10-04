@@ -185,7 +185,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn upd_command_voltage() {
+    fn udp_command_voltage() {
         assert_eq!(
             UdpCommand::serialize(cmd::Voltage { volts: 42.123 }),
             "VSET:42.123\n".as_bytes()
@@ -193,7 +193,7 @@ mod tests {
     }
 
     #[test]
-    fn upd_command_current() {
+    fn udp_command_current() {
         assert_eq!(
             UdpCommand::serialize(cmd::Current { ampere: 2.001 }),
             "ISET:2.001\n".as_bytes()
@@ -201,7 +201,7 @@ mod tests {
     }
 
     #[test]
-    fn upd_command_output() {
+    fn udp_command_output() {
         assert_eq!(
             UdpCommand::serialize(cmd::Output {
                 switch: cmd::Switch::On
@@ -219,6 +219,10 @@ mod tests {
     #[test]
     fn udp_query_voltage() {
         assert_eq!(
+            <cmd::Voltage as UdpQuery>::serialize(),
+            "VSET?\n".as_bytes()
+        );
+        assert_eq!(
             <cmd::Voltage as UdpQuery>::deserialize("42.123\n".as_bytes()).unwrap(),
             cmd::Voltage { volts: 42.123 }
         );
@@ -227,6 +231,10 @@ mod tests {
     #[test]
     fn udp_query_current() {
         assert_eq!(
+            <cmd::Current as UdpQuery>::serialize(),
+            "ISET?\n".as_bytes()
+        );
+        assert_eq!(
             <cmd::Current as UdpQuery>::deserialize("2.123\n".as_bytes()).unwrap(),
             cmd::Current { ampere: 2.123 }
         );
@@ -234,6 +242,7 @@ mod tests {
 
     #[test]
     fn udp_query_output() {
+        assert_eq!(<cmd::Output as UdpQuery>::serialize(), "OUT?\n".as_bytes());
         assert_eq!(
             <cmd::Output as UdpQuery>::deserialize("1\n".as_bytes()).unwrap(),
             cmd::Output {
