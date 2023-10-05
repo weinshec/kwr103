@@ -58,6 +58,14 @@ pub mod commands {
     #[derive(Debug, PartialEq)]
     pub struct Power(pub Switch);
 
+    /// Actual output voltage and current state
+    #[derive(Debug, PartialEq)]
+    pub struct Output {
+        pub power: Switch,
+        pub voltage: f32,
+        pub current: f32,
+    }
+
     impl std::str::FromStr for Switch {
         type Err = &'static str;
 

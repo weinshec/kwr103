@@ -100,10 +100,37 @@ impl UdpQuery for cmd::Power {
         Ok(Self(parse_single_value::<cmd::Switch>(bytes)?))
     }
 }
+impl UdpQuery for cmd::Output {
+    fn serialize() -> Vec<u8> {
+        String::from("OUT?\nVOUT?\nIOUT?\n").into_bytes()
+    }
+
+    fn deserialize(bytes: &[u8]) -> Result<Self> {
+        let response = String::from_utf8_lossy(bytes);
+        let mut tokens = response.split_whitespace();
+
+        Ok(Self {
+            power: parse_next_token(&mut tokens)?,
+            voltage: parse_next_token(&mut tokens)?,
+            current: parse_next_token(&mut tokens)?,
+        })
+    }
+}
 
 fn parse_single_value<T: FromStr>(bytes: &[u8]) -> Result<T> {
     String::from_utf8_lossy(bytes)
         .strip_suffix('\n')
+        .ok_or(TransactionError::ResponseIncomplete)?
+        .parse()
+        .map_err(|_| TransactionError::ResponseInvalid)
+}
+
+fn parse_next_token<'a, I, T>(iter: &mut I) -> Result<T>
+where
+    I: Iterator<Item = &'a str>,
+    T: FromStr,
+{
+    iter.next()
         .ok_or(TransactionError::ResponseIncomplete)?
         .parse()
         .map_err(|_| TransactionError::ResponseInvalid)
@@ -153,13 +180,31 @@ impl Kwr103Eth {
     /// println!("Voltage = {:.3}V", voltage.0);
     /// ```
     pub fn query<C: UdpQuery>(&self) -> Result<C> {
-        let mut buf = [0; 512];
         let payload = C::serialize();
         if self.socket.send(&payload)? != payload.len() {
             return Err(TransactionError::RequestFailed);
         }
-        let n = self.socket.recv(&mut buf)?;
-        C::deserialize(&buf[..n])
+
+        let mut response: Vec<u8> = Vec::new();
+        let mut is_done = false;
+        while !is_done {
+            let mut buf: Vec<u8> = vec![0; 512];
+            match self.socket.recv(buf.as_mut_slice()) {
+                Ok(count) => {
+                    response.extend(buf.drain(..count));
+                }
+                Err(ref e)
+                    if e.kind() == std::io::ErrorKind::TimedOut
+                        || e.kind() == std::io::ErrorKind::WouldBlock =>
+                {
+                    is_done = true;
+                }
+                Err(_) => {
+                    return Err(TransactionError::ResponseIncomplete);
+                }
+            };
+        }
+        C::deserialize(&response)
     }
 }
 
@@ -184,7 +229,7 @@ mod tests {
     }
 
     #[test]
-    fn udp_command_output() {
+    fn udp_command_power() {
         assert_eq!(
             UdpCommand::serialize(cmd::Power(cmd::Switch::On)),
             "OUT:1\n".as_bytes()
@@ -220,7 +265,7 @@ mod tests {
     }
 
     #[test]
-    fn udp_query_output() {
+    fn udp_query_power() {
         assert_eq!(<cmd::Power as UdpQuery>::serialize(), "OUT?\n".as_bytes());
         assert_eq!(
             <cmd::Power as UdpQuery>::deserialize("1\n".as_bytes()).unwrap(),
@@ -229,6 +274,22 @@ mod tests {
         assert_eq!(
             <cmd::Power as UdpQuery>::deserialize("0\n".as_bytes()).unwrap(),
             cmd::Power(cmd::Switch::Off)
+        );
+    }
+
+    #[test]
+    fn udp_query_output() {
+        assert_eq!(
+            <cmd::Output as UdpQuery>::serialize(),
+            "OUT?\nVOUT?\nIOUT?\n".as_bytes()
+        );
+        assert_eq!(
+            <cmd::Output as UdpQuery>::deserialize("1\n1.234\n5.678\n".as_bytes()).unwrap(),
+            cmd::Output {
+                power: cmd::Switch::On,
+                voltage: 1.234,
+                current: 5.678,
+            }
         );
     }
 }

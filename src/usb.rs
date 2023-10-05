@@ -93,10 +93,41 @@ impl UsbQuery for cmd::Power {
         Ok(Self(parse_single_value::<cmd::Switch>(bytes)?))
     }
 }
+impl UsbQuery for cmd::Output {
+    fn serialize(device_id: u8) -> Vec<u8> {
+        format!(
+            "OUT{:02}?\nVOUT{:02}?\nIOUT{:02}?\n",
+            device_id, device_id, device_id
+        )
+        .into_bytes()
+    }
+
+    fn deserialize(bytes: &[u8]) -> Result<Self> {
+        let response = String::from_utf8_lossy(bytes);
+        let mut tokens = response.split_whitespace();
+
+        Ok(Self {
+            power: parse_next_token(&mut tokens)?,
+            voltage: parse_next_token(&mut tokens)?,
+            current: parse_next_token(&mut tokens)?,
+        })
+    }
+}
 
 fn parse_single_value<T: FromStr>(bytes: &[u8]) -> Result<T> {
     String::from_utf8_lossy(bytes)
         .strip_suffix('\n')
+        .ok_or(TransactionError::ResponseIncomplete)?
+        .parse()
+        .map_err(|_| TransactionError::ResponseInvalid)
+}
+
+fn parse_next_token<'a, I, T>(iter: &mut I) -> Result<T>
+where
+    I: Iterator<Item = &'a str>,
+    T: FromStr,
+{
+    iter.next()
         .ok_or(TransactionError::ResponseIncomplete)?
         .parse()
         .map_err(|_| TransactionError::ResponseInvalid)
@@ -156,13 +187,28 @@ impl Kwr103Usb {
     /// println!("Voltage = {:.3}V", voltage.0);
     /// ```
     pub fn query<C: UsbQuery>(&mut self) -> Result<C> {
-        let mut buf = [0; 512];
         let payload = C::serialize(self.device_id);
         if self.serial.write(&payload)? != payload.len() {
             return Err(TransactionError::RequestFailed);
         }
-        let n = self.serial.read(&mut buf)?;
-        C::deserialize(&buf[..n])
+
+        let mut response: Vec<u8> = Vec::new();
+        let mut is_done = false;
+        while !is_done {
+            let mut buf: Vec<u8> = vec![0; 512];
+            match self.serial.read(buf.as_mut_slice()) {
+                Ok(count) => {
+                    response.extend(buf.drain(..count));
+                }
+                Err(ref e) if e.kind() == std::io::ErrorKind::TimedOut => {
+                    is_done = true;
+                }
+                Err(_) => {
+                    return Err(TransactionError::ResponseIncomplete);
+                }
+            };
+        }
+        C::deserialize(&response)
     }
 }
 
@@ -235,6 +281,22 @@ mod tests {
         assert_eq!(
             <cmd::Power as UsbQuery>::deserialize("0\n".as_bytes()).unwrap(),
             cmd::Power(cmd::Switch::Off)
+        );
+    }
+
+    #[test]
+    fn usb_query_output() {
+        assert_eq!(
+            <cmd::Output as UsbQuery>::serialize(2),
+            "OUT02?\nVOUT02?\nIOUT02?\n".as_bytes()
+        );
+        assert_eq!(
+            <cmd::Output as UsbQuery>::deserialize("1\n1.234\n5.678\n".as_bytes()).unwrap(),
+            cmd::Output {
+                power: cmd::Switch::On,
+                voltage: 1.234,
+                current: 5.678,
+            }
         );
     }
 
