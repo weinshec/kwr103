@@ -31,19 +31,19 @@ pub trait UdpCommand: Sized {
 
 impl UdpCommand for cmd::Voltage {
     fn serialize(cmd: Self) -> Vec<u8> {
-        format!("VSET:{:.3}\n", cmd.volts).into_bytes()
+        format!("VSET:{:.3}\n", cmd.0).into_bytes()
     }
 }
 impl UdpCommand for cmd::Current {
     fn serialize(cmd: Self) -> Vec<u8> {
-        format!("ISET:{:.3}\n", cmd.ampere).into_bytes()
+        format!("ISET:{:.3}\n", cmd.0).into_bytes()
     }
 }
-impl UdpCommand for cmd::Output {
+impl UdpCommand for cmd::Power {
     fn serialize(cmd: Self) -> Vec<u8> {
         format!(
             "OUT:{}\n",
-            match cmd.switch {
+            match cmd.0 {
                 cmd::Switch::On => 1,
                 cmd::Switch::Off => 0,
             }
@@ -86,9 +86,7 @@ impl UdpQuery for cmd::Voltage {
     }
 
     fn deserialize(bytes: &[u8]) -> Result<Self> {
-        Ok(Self {
-            volts: parse_single_value(bytes)?,
-        })
+        Ok(Self(parse_single_value(bytes)?))
     }
 }
 impl UdpQuery for cmd::Current {
@@ -97,24 +95,20 @@ impl UdpQuery for cmd::Current {
     }
 
     fn deserialize(bytes: &[u8]) -> Result<Self> {
-        Ok(Self {
-            ampere: parse_single_value(bytes)?,
-        })
+        Ok(Self(parse_single_value(bytes)?))
     }
 }
-impl UdpQuery for cmd::Output {
+impl UdpQuery for cmd::Power {
     fn serialize() -> Vec<u8> {
         String::from("OUT?\n").into_bytes()
     }
 
     fn deserialize(bytes: &[u8]) -> Result<Self> {
-        Ok(Self {
-            switch: match parse_single_value::<u8>(bytes)? {
-                0 => cmd::Switch::Off,
-                1 => cmd::Switch::On,
-                _ => return Err(TransactionError::ResponseInvalid),
-            },
-        })
+        Ok(Self(match parse_single_value::<u8>(bytes)? {
+            0 => cmd::Switch::Off,
+            1 => cmd::Switch::On,
+            _ => return Err(TransactionError::ResponseInvalid),
+        }))
     }
 }
 
@@ -148,7 +142,7 @@ impl Kwr103Eth {
     /// use kwr103::eth::Kwr103Eth;
     ///
     /// let ups = Kwr103Eth::new().unwrap();
-    /// ups.command(Voltage { volts: 42.0 }).unwrap();
+    /// ups.command(Voltage(42.0)).unwrap();
     /// ```
     pub fn command<C: UdpCommand>(&self, v: C) -> Result<()> {
         let payload = C::serialize(v);
@@ -167,7 +161,7 @@ impl Kwr103Eth {
     ///
     /// let ups = Kwr103Eth::new().unwrap();
     /// let voltage = ups.query::<Voltage>().unwrap();
-    /// println!("Voltage = {:.3}V", voltage.volts);
+    /// println!("Voltage = {:.3}V", voltage.0);
     /// ```
     pub fn query<C: UdpQuery>(&self) -> Result<C> {
         let mut buf = [0; 512];
@@ -187,7 +181,7 @@ mod tests {
     #[test]
     fn udp_command_voltage() {
         assert_eq!(
-            UdpCommand::serialize(cmd::Voltage { volts: 42.123 }),
+            UdpCommand::serialize(cmd::Voltage(42.123)),
             "VSET:42.123\n".as_bytes()
         );
     }
@@ -195,7 +189,7 @@ mod tests {
     #[test]
     fn udp_command_current() {
         assert_eq!(
-            UdpCommand::serialize(cmd::Current { ampere: 2.001 }),
+            UdpCommand::serialize(cmd::Current(2.001)),
             "ISET:2.001\n".as_bytes()
         );
     }
@@ -203,15 +197,11 @@ mod tests {
     #[test]
     fn udp_command_output() {
         assert_eq!(
-            UdpCommand::serialize(cmd::Output {
-                switch: cmd::Switch::On
-            }),
+            UdpCommand::serialize(cmd::Power(cmd::Switch::On)),
             "OUT:1\n".as_bytes()
         );
         assert_eq!(
-            UdpCommand::serialize(cmd::Output {
-                switch: cmd::Switch::Off
-            }),
+            UdpCommand::serialize(cmd::Power(cmd::Switch::Off)),
             "OUT:0\n".as_bytes()
         );
     }
@@ -224,7 +214,7 @@ mod tests {
         );
         assert_eq!(
             <cmd::Voltage as UdpQuery>::deserialize("42.123\n".as_bytes()).unwrap(),
-            cmd::Voltage { volts: 42.123 }
+            cmd::Voltage(42.123)
         );
     }
 
@@ -236,24 +226,20 @@ mod tests {
         );
         assert_eq!(
             <cmd::Current as UdpQuery>::deserialize("2.123\n".as_bytes()).unwrap(),
-            cmd::Current { ampere: 2.123 }
+            cmd::Current(2.123)
         );
     }
 
     #[test]
     fn udp_query_output() {
-        assert_eq!(<cmd::Output as UdpQuery>::serialize(), "OUT?\n".as_bytes());
+        assert_eq!(<cmd::Power as UdpQuery>::serialize(), "OUT?\n".as_bytes());
         assert_eq!(
-            <cmd::Output as UdpQuery>::deserialize("1\n".as_bytes()).unwrap(),
-            cmd::Output {
-                switch: cmd::Switch::On
-            }
+            <cmd::Power as UdpQuery>::deserialize("1\n".as_bytes()).unwrap(),
+            cmd::Power(cmd::Switch::On)
         );
         assert_eq!(
-            <cmd::Output as UdpQuery>::deserialize("0\n".as_bytes()).unwrap(),
-            cmd::Output {
-                switch: cmd::Switch::Off
-            }
+            <cmd::Power as UdpQuery>::deserialize("0\n".as_bytes()).unwrap(),
+            cmd::Power(cmd::Switch::Off)
         );
     }
 }

@@ -48,19 +48,15 @@ pub mod commands {
 
     /// Output voltage setting in units of volts
     #[derive(Debug, PartialEq)]
-    pub struct Voltage {
-        pub volts: f32,
-    }
+    pub struct Voltage(pub f32);
 
     /// Output current setting in units of ampere
     #[derive(Debug, PartialEq)]
-    pub struct Current {
-        pub ampere: f32,
-    }
+    pub struct Current(pub f32);
 
     /// Output power switch On/Off
     #[derive(Debug, PartialEq)]
-    pub struct Output {
-        pub switch: Switch,
-    }
+    pub struct Power(pub Switch);
+
+
 }
