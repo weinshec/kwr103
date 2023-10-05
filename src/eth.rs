@@ -41,14 +41,7 @@ impl UdpCommand for cmd::Current {
 }
 impl UdpCommand for cmd::Power {
     fn serialize(cmd: Self) -> Vec<u8> {
-        format!(
-            "OUT:{}\n",
-            match cmd.0 {
-                cmd::Switch::On => 1,
-                cmd::Switch::Off => 0,
-            }
-        )
-        .into_bytes()
+        format!("OUT:{}\n", cmd.0 as u8).into_bytes()
     }
 }
 
@@ -104,11 +97,7 @@ impl UdpQuery for cmd::Power {
     }
 
     fn deserialize(bytes: &[u8]) -> Result<Self> {
-        Ok(Self(match parse_single_value::<u8>(bytes)? {
-            0 => cmd::Switch::Off,
-            1 => cmd::Switch::On,
-            _ => return Err(TransactionError::ResponseInvalid),
-        }))
+        Ok(Self(parse_single_value::<cmd::Switch>(bytes)?))
     }
 }
 

@@ -40,10 +40,10 @@ pub mod commands {
     /// Representing the state of a switchable feature or output
     #[derive(Debug, PartialEq)]
     pub enum Switch {
-        /// Enable feature or output
-        On,
         /// Disable feature or output
-        Off,
+        Off = 0,
+        /// Enable feature or output
+        On = 1,
     }
 
     /// Output voltage setting in units of volts
@@ -58,5 +58,37 @@ pub mod commands {
     #[derive(Debug, PartialEq)]
     pub struct Power(pub Switch);
 
+    impl std::str::FromStr for Switch {
+        type Err = &'static str;
 
+        fn from_str(s: &str) -> Result<Self, Self::Err> {
+            match s
+                .parse::<u8>()
+                .map_err(|_| "Switch value is not a valid integer")?
+            {
+                0 => Ok(Switch::Off),
+                1 => Ok(Switch::On),
+                _ => Err("Invalid digit for Switch (must be 0/1)"),
+            }
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn switch_from_string() {
+            assert_eq!(Ok(Switch::Off), "0".parse());
+            assert_eq!(Ok(Switch::On), "1".parse());
+            assert!("2".parse::<Switch>().is_err());
+            assert!("_".parse::<Switch>().is_err());
+        }
+
+        #[test]
+        fn switch_into_u8() {
+            assert_eq!(0u8, Switch::Off as u8);
+            assert_eq!(1u8, Switch::On as u8);
+        }
+    }
 }
