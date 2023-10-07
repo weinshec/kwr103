@@ -102,14 +102,14 @@ pub struct Kwr103Usb {
 
 impl Kwr103Usb {
     /// Create a new power supply instance
-    pub fn new(port_name: &str, device_id: u8) -> Result<Self, TransactionError> {
+    pub fn new(port_name: &str, baud_rate: u32, device_id: u8) -> Result<Self, TransactionError> {
         if device_id > 99 {
             return Err(TransactionError::InvalidConfiguration(
                 "Kwr103Usb device id must be in [0; 99]".to_string(),
             ));
         }
 
-        let serial = serialport::new(port_name, 115200)
+        let serial = serialport::new(port_name, baud_rate)
             .timeout(Duration::from_millis(150))
             .parity(serialport::Parity::None)
             .stop_bits(serialport::StopBits::One)
@@ -125,7 +125,7 @@ impl Kwr103Usb {
     /// use kwr103::command::*;
     /// use kwr103::usb::Kwr103Usb;
     ///
-    /// let mut ups = Kwr103Usb::new("/dev/ttyACM0", 1).unwrap();
+    /// let mut ups = Kwr103Usb::new("/dev/ttyACM0", 115200, 1).unwrap();
     /// ups.command(Voltage(42.0)).unwrap();
     /// ```
     pub fn command<C: UsbCommand>(&mut self, v: C) -> Result<(), TransactionError> {
@@ -143,7 +143,7 @@ impl Kwr103Usb {
     /// use kwr103::command::*;
     /// use kwr103::usb::Kwr103Usb;
     ///
-    /// let mut ups = Kwr103Usb::new("/dev/ttyACM0", 1).unwrap();
+    /// let mut ups = Kwr103Usb::new("/dev/ttyACM0", 115200, 1).unwrap();
     /// let voltage = ups.query::<Voltage>().unwrap();
     /// println!("Voltage = {:.3}V", voltage.0);
     /// ```
@@ -239,7 +239,7 @@ mod tests {
 
     #[test]
     fn creating_new_kwr103_instance_with_invalid_id() {
-        let kwr103 = Kwr103Usb::new("/dev/ttyACM0", 100);
+        let kwr103 = Kwr103Usb::new("/dev/ttyACM0", 115200, 100);
         assert!(kwr103.is_err());
     }
 }

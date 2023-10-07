@@ -1,6 +1,6 @@
 //! UDP communication for ethernet connected power supplies
 
-use std::net::UdpSocket;
+use std::net::{ToSocketAddrs, UdpSocket};
 use std::time::Duration;
 
 use crate::command as cmd;
@@ -97,10 +97,10 @@ pub struct Kwr103Eth {
 
 impl Kwr103Eth {
     /// Create a new power supply instance
-    pub fn new() -> Result<Self, TransactionError> {
+    pub fn new<A: ToSocketAddrs>(socket_address: A) -> Result<Self, TransactionError> {
         let socket = UdpSocket::bind("0.0.0.0:18190")?;
         socket.set_read_timeout(Some(Duration::from_millis(150)))?;
-        socket.connect("192.168.1.198:18190")?;
+        socket.connect(socket_address)?;
         Ok(Self { socket })
     }
 
@@ -111,7 +111,7 @@ impl Kwr103Eth {
     /// use kwr103::command::*;
     /// use kwr103::eth::Kwr103Eth;
     ///
-    /// let ups = Kwr103Eth::new().unwrap();
+    /// let ups = Kwr103Eth::new("192.168.1.198:18190").unwrap();
     /// ups.command(Voltage(42.0)).unwrap();
     /// ```
     pub fn command<C: UdpCommand>(&self, v: C) -> Result<(), TransactionError> {
@@ -129,7 +129,7 @@ impl Kwr103Eth {
     /// use kwr103::command::*;
     /// use kwr103::eth::Kwr103Eth;
     ///
-    /// let ups = Kwr103Eth::new().unwrap();
+    /// let ups = Kwr103Eth::new("192.168.1.198:18190").unwrap();
     /// let voltage = ups.query::<Voltage>().unwrap();
     /// println!("Voltage = {:.3}V", voltage.0);
     /// ```
