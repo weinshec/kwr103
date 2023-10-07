@@ -1,4 +1,4 @@
-use kwr103::commands::*;
+use kwr103::command::*;
 use kwr103::eth::Kwr103Eth;
 
 fn main() -> anyhow::Result<()> {
