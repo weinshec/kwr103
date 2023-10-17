@@ -9,6 +9,9 @@ pub mod usb;
 mod error;
 pub use error::{ResponseError, TransactionError};
 
+#[doc(hidden)]
+pub mod cli;
+
 /// Marks types that may be parsed from a power supply response.
 ///
 /// Types implementing this trait represent settings or status values that can be queried from the

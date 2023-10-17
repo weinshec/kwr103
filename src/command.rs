@@ -1,11 +1,12 @@
 //! Command types to interact with any power supply
 
+use std::fmt;
 use std::str::FromStr;
 
 use crate::{ResponseError, UpsResponse};
 
 /// Representing the state of a switchable feature or output
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Switch {
     /// Disable feature or output
     Off = 0,
@@ -71,8 +72,20 @@ impl std::str::FromStr for Switch {
         match s {
             "0" => Ok(Switch::Off),
             "1" => Ok(Switch::On),
-            _ => Err("Invalid digit for Switch (must be 0/1)"),
+            "off" => Ok(Switch::Off),
+            "on" => Ok(Switch::On),
+            _ => Err("Invalid value for Switch (must be either 0/1 or on/off)"),
         }
+    }
+}
+
+impl fmt::Display for Output {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "Output: {:?}, Voltage[V]: {:5.3}, Current[A]: {:5.3}",
+            self.power, self.voltage, self.current,
+        )
     }
 }
 
@@ -103,6 +116,8 @@ mod tests {
     fn switch_from_string() {
         assert_eq!(Ok(Switch::Off), "0".parse());
         assert_eq!(Ok(Switch::On), "1".parse());
+        assert_eq!(Ok(Switch::Off), "off".parse());
+        assert_eq!(Ok(Switch::On), "on".parse());
         assert!("2".parse::<Switch>().is_err());
         assert!("_".parse::<Switch>().is_err());
     }

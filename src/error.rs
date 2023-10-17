@@ -32,6 +32,6 @@ pub enum ResponseError {
     Invalid,
 
     /// The power supply sent less bytes as expected in response
-    #[error("Incomplete response from power supply")]
+    #[error("No or incomplete response from power supply")]
     Incomplete,
 }
