@@ -89,6 +89,11 @@ impl UdpQuery for cmd::Output {
         String::from("OUT?\nVOUT?\nIOUT?\n").into_bytes()
     }
 }
+impl UdpQuery for cmd::DeviceInfo {
+    fn serialize() -> Vec<u8> {
+        String::from(":SYST:DEVINFO?\n").into_bytes()
+    }
+}
 
 /// An ethernet connected KWR103 power supply.
 pub struct Kwr103Eth {
@@ -220,6 +225,14 @@ mod tests {
         assert_eq!(
             <cmd::Output as UdpQuery>::serialize(),
             "OUT?\nVOUT?\nIOUT?\n".as_bytes()
+        );
+    }
+
+    #[test]
+    fn udp_query_deviceinfo() {
+        assert_eq!(
+            <cmd::DeviceInfo as UdpQuery>::serialize(),
+            ":SYST:DEVINFO?\n".as_bytes()
         );
     }
 }

@@ -20,4 +20,6 @@ pub enum Command {
     },
     /// Show current output voltage and current
     Output,
+    /// Show system information
+    Info,
 }

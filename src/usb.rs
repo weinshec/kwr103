@@ -93,6 +93,11 @@ impl UsbQuery for cmd::Output {
         .into_bytes()
     }
 }
+impl UsbQuery for cmd::DeviceInfo {
+    fn serialize(_device_id: u8) -> Vec<u8> {
+        String::from(":SYST:DEVINFO?\n").into_bytes()
+    }
+}
 
 /// A USB connected KWR103 power supply.
 pub struct Kwr103Usb {
@@ -234,6 +239,14 @@ mod tests {
         assert_eq!(
             <cmd::Output as UsbQuery>::serialize(2),
             "OUT02?\nVOUT02?\nIOUT02?\n".as_bytes()
+        );
+    }
+
+    #[test]
+    fn usb_query_deviceinfo() {
+        assert_eq!(
+            <cmd::DeviceInfo as UsbQuery>::serialize(2),
+            ":SYST:DEVINFO?\n".as_bytes()
         );
     }
 

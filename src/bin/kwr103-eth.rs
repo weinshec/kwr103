@@ -38,6 +38,9 @@ fn main() -> anyhow::Result<()> {
         Command::Output => {
             println!("{}", kwr103.query::<Output>()?)
         }
+        Command::Info => {
+            println!("{}", kwr103.query::<DeviceInfo>()?)
+        }
     }
 
     Ok(())
