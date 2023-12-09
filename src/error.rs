@@ -1,3 +1,5 @@
+//! Error types for the KWR103 power supply crate
+
 use thiserror::Error;
 
 /// Common error type for any kind transactional errors (communication, decoding, etc.)
