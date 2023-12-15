@@ -19,8 +19,8 @@ pub struct UsbDetails {
     pub baud: u32,
 
     /// USB: RS485 device ID
-    #[clap(long, default_value_t = 1)]
-    pub id: u8,
+    #[clap(long)]
+    pub id: Option<u8>,
 }
 
 #[derive(Debug, Args)]

@@ -9,7 +9,7 @@
 //!
 //! fn main() -> Result<(), TransactionError> {
 //!     // Establish USB connection
-//!     let mut kwr103: Kwr103 = UsbConnection::new("/dev/ttyACM0", 115200, 1)?.into();
+//!     let mut kwr103: Kwr103 = UsbConnection::new("/dev/ttyACM0", 115200, None)?.into();
 //!
 //!     // Adjust voltage and current settings
 //!     kwr103.command(Voltage(42.0))?;
@@ -125,7 +125,7 @@ pub trait Transport {
 /// ```no_run
 /// use kwr103::{Kwr103, UsbConnection};
 ///
-/// let mut kwr103 = Kwr103::from(UsbConnection::new("/dev/ttyACM0", 115200, 1).unwrap());
+/// let mut kwr103 = Kwr103::from(UsbConnection::new("/dev/ttyACM0", 115200, None).unwrap());
 /// ```
 pub struct Kwr103 {
     transport: Box<dyn Transport>,
@@ -143,7 +143,7 @@ impl Kwr103 {
     /// ```no_run
     /// use kwr103::{command::*, Kwr103, UsbConnection};
     ///
-    /// let mut kwr103 = Kwr103::from(UsbConnection::new("/dev/ttyACM0", 115200, 1).unwrap());
+    /// let mut kwr103 = Kwr103::from(UsbConnection::new("/dev/ttyACM0", 115200, None).unwrap());
     /// kwr103.command(Voltage(42.0)).unwrap();
     /// ```
     pub fn command<C: Command>(&mut self, cmd: C) -> Result<(), TransactionError> {
@@ -162,7 +162,7 @@ impl Kwr103 {
     /// ```no_run
     /// use kwr103::{command::*, Kwr103, UsbConnection};
     ///
-    /// let mut kwr103 = Kwr103::from(UsbConnection::new("/dev/ttyACM0", 115200, 1).unwrap());
+    /// let mut kwr103 = Kwr103::from(UsbConnection::new("/dev/ttyACM0", 115200, None).unwrap());
     /// let voltage = kwr103.query::<Voltage>().unwrap();
     /// println!("Voltage = {:.3}V", voltage.0);
     /// ```
