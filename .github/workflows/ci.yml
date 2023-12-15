@@ -1,0 +1,106 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+
+  clippy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install prerequisites
+      run: |
+        sudo apt-get -y update
+        sudo apt-get -y install libudev-dev
+
+    - name: Install toolchain
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: clippy
+
+    - name: Run clippy
+      run: |
+        cargo clippy --locked --all-targets --all-features
+
+  rustfmt:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install toolchain
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: rustfmt
+
+    - name: Check formatting
+      run: |
+        cargo fmt --all -- --check 
+
+  build:
+    name: ${{ matrix.job.target }}
+    runs-on: ${{ matrix.job.os }}
+    needs: [clippy, rustfmt]
+    strategy:
+      fail-fast: false
+      matrix:
+        job:
+          - { target: aarch64-unknown-linux-musl, os: ubuntu-latest                }
+          - { target: x86_64-apple-darwin       , os: macos-latest                 }
+          - { target: x86_64-pc-windows-gnu     , os: windows-latest, suffix: .exe }
+          - { target: x86_64-unknown-linux-gnu  , os: ubuntu-latest                }
+          - { target: x86_64-unknown-linux-musl , os: ubuntu-latest                }
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install prerequisites
+      shell: bash
+      run: |
+        case ${{ matrix.job.target }} in
+          aarch64-unknown-linux-*) sudo apt-get -y update ; sudo apt-get -y install crossbuild-essential-arm64 ;;
+          x86_64-unknown-linux-*) sudo apt-get -y update ; sudo apt-get -y install libudev-dev ;;
+        esac
+
+    - name: Set linker defaults
+      shell: bash
+      run: |
+        mkdir -p .cargo && touch .cargo/config.toml
+        echo "[target.aarch64-unknown-linux-musl]" >> .cargo/config.toml
+        echo "linker = \"aarch64-linux-gnu-gcc\""  >> .cargo/config.toml
+
+    - name: Install toolchain
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: ${{ matrix.job.target }}
+
+    - name: Version information
+      shell: bash
+      run: |
+        gcc --version
+        rustup -V
+        rustup toolchain list
+        rustup default
+        cargo -V
+        rustc -V
+
+    - name: Test
+      if: contains(matrix.job.target, 'x86_64')
+      run: |
+        cargo test --locked --target ${{ matrix.job.target }} --verbose
+
+    - name: Build
+      run: |
+        cargo build --locked --release --target=${{ matrix.job.target }}
+
+    - name: Save Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: kwr103-${{ matrix.job.target }}
+        path: target/${{ matrix.job.target }}/release/kwr103${{ matrix.job.suffix }}
