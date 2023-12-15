@@ -76,6 +76,43 @@ impl From<UsbConnection> for Kwr103 {
     }
 }
 
+/// Connection details for a serial connected power supply
+#[derive(Debug, Clone)]
+pub struct ConnectionDetails {
+    /// The serial device, e.g. `/dev/ttyACM0`
+    pub serial: String,
+
+    /// Baudrate for the serial connection
+    pub baud_rate: u32,
+
+    /// Optional RS485 device ID
+    pub device_id: Option<u8>,
+}
+
+impl ConnectionDetails {
+    /// Attempt to open a serial [`UsbConnection`] using this connection details
+    pub fn open(self) -> Result<UsbConnection, TransactionError> {
+        UsbConnection::new(&self.serial, self.baud_rate, self.device_id)
+    }
+}
+
+/// Discover serial connected devices
+pub fn find_devices(baud_rate: u32, device_id: Option<u8>) -> Vec<ConnectionDetails> {
+    serialport::available_ports()
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|info| match &info.port_type {
+            serialport::SerialPortType::UsbPort(usb) => usb.vid == 0x0416 && usb.pid == 0x5011,
+            _ => false,
+        })
+        .map(|port| ConnectionDetails {
+            serial: port.port_name,
+            baud_rate,
+            device_id,
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

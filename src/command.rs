@@ -170,6 +170,26 @@ impl Query for DeviceInfo {
     }
 }
 
+/// Use DHCP to obtain an IP address
+#[derive(Debug, PartialEq)]
+pub struct Dhcp(pub Switch);
+
+impl Command for Dhcp {
+    fn serialize(cmd: Self, _device_id: Option<u8>) -> Vec<u8> {
+        format!(":SYST:DHCP {}\n", cmd.0 as u8).into_bytes()
+    }
+}
+
+impl Query for Dhcp {
+    fn serialize(_device_id: Option<u8>) -> Vec<u8> {
+        String::from(":SYST:DHCP?\n").into_bytes()
+    }
+
+    fn parse(bytes: &[u8]) -> std::result::Result<Self, ResponseError> {
+        Ok(Self(parse_single_value::<Switch>(bytes)?))
+    }
+}
+
 impl std::str::FromStr for Switch {
     type Err = &'static str;
 
@@ -327,7 +347,7 @@ mod tests {
     }
 
     #[test]
-    fn command_power() {
+    fn command_output() {
         assert_eq!(
             Command::serialize(Output(Switch::On), Some(2)),
             "OUT02:1\n".as_bytes()
@@ -389,6 +409,39 @@ mod tests {
                 port: 18190,
                 baud: 115200,
             }
+        );
+    }
+
+    #[test]
+    fn command_dhcp() {
+        assert_eq!(
+            Command::serialize(Dhcp(Switch::On), Some(2)),
+            ":SYST:DHCP 1\n".as_bytes()
+        );
+        assert_eq!(
+            Command::serialize(Dhcp(Switch::Off), Some(2)),
+            ":SYST:DHCP 0\n".as_bytes()
+        );
+        assert_eq!(
+            Command::serialize(Dhcp(Switch::On), None),
+            ":SYST:DHCP 1\n".as_bytes()
+        );
+        assert_eq!(
+            Command::serialize(Dhcp(Switch::Off), None),
+            ":SYST:DHCP 0\n".as_bytes()
+        );
+    }
+
+    #[test]
+    fn query_dhcp() {
+        assert_eq!(
+            <Dhcp as Query>::serialize(Some(2)),
+            ":SYST:DHCP?\n".as_bytes()
+        );
+        assert_eq!(<Dhcp as Query>::serialize(None), ":SYST:DHCP?\n".as_bytes());
+        assert_eq!(
+            <Dhcp as Query>::parse("1\n".as_bytes()).unwrap(),
+            Dhcp(Switch::On)
         );
     }
 }
