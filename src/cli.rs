@@ -1,35 +1,32 @@
 use crate::command as cmd;
-use clap::{Args, Subcommand, ValueEnum};
-
-/// Connection type
-#[derive(Debug, Clone, ValueEnum)]
-pub enum Connection {
-    Usb,
-    Eth,
-}
+use clap::{Args, Subcommand};
 
 #[derive(Debug, Args)]
-pub struct UsbDetails {
-    /// USB: serial device
-    #[clap(long, default_value_t = String::from("/dev/ttyACM0"))]
-    pub device: String,
+#[group(required = false, multiple = false)]
+pub struct Connection {
+    /// Specify device for serial connection [example: /dev/ttyACM0]
+    #[arg(long)]
+    pub device: Option<String>,
 
-    /// USB: serial baud rate
+    /// Specify IP address for ethernet connection [example: 192.168.1.195]
+    #[arg(long)]
+    pub ip: Option<String>,
+}
+
+#[derive(Debug, Args, Clone)]
+pub struct UsbDetails {
+    /// Serial baud rate
     #[clap(long, default_value_t = 115200)]
     pub baud: u32,
 
-    /// USB: RS485 device ID
+    /// Optional RS485 device ID
     #[clap(long)]
     pub id: Option<u8>,
 }
 
-#[derive(Debug, Args)]
+#[derive(Debug, Args, Clone)]
 pub struct EthDetails {
-    /// ETH: IP Address
-    #[clap(long, default_value_t = String::from("192.168.1.198"))]
-    pub ip: String,
-
-    /// ETH: UDP port
+    /// UDP port for ethernet connected devices
     #[clap(long, default_value_t = 18190)]
     pub port: u16,
 }
@@ -55,4 +52,9 @@ pub enum Command {
     Status,
     /// Show system information
     Info,
+    /// Turn DHCP 'on' or 'off'
+    Dhcp {
+        #[clap(help = "on/off")]
+        switch: cmd::Switch,
+    },
 }

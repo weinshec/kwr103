@@ -30,13 +30,27 @@
 //! `kwr103 --help` for the full specification.
 //!
 //! ```text
-//! > kwr103 usb status
+//! > kwr103 status
 //! Output: Off, Voltage[V]: 0.000, Current[A]: 0.000
 //!
-//! > kwr103 usb output on
-//! > kwr103 usb status
+//! > kwr103 output on
+//! > kwr103 status
 //! Output: On, Voltage[V]: 42.000, Current[A]: 0.131
 //! ```
+//!
+//! ## Automatic connection discovery
+//! The `kwr103` command line tool will attempt to automatically find the connection details for
+//! the attached power supply, whether it is serial or ethernet connected.
+//!
+//! In case you want to specify the connection details explicitly instead, use the corresponding
+//! CLI parameters, i.e.
+//!
+//! - `--device=<PATH>` for a serial connected power supply
+//! - `--ip=<IPv4ADDR>` for an ethernet connected power supply
+//!
+//! **In case the automatic discovery finds more than a single power supply unit, no action will be
+//! taken for safety reasons. In this case you will be prompted to specify the connection details
+//! explicitly.**
 
 #![deny(warnings)]
 #![warn(missing_docs)]
