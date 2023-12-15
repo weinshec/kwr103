@@ -9,16 +9,22 @@ use crate::{Kwr103, ResponseError, TransactionError, Transport};
 /// Communication channel for a serial/USB connected power supply
 pub struct UsbConnection {
     serial: Box<dyn serialport::SerialPort>,
-    device_id: u8,
+    device_id: Option<u8>,
 }
 
 impl UsbConnection {
     /// Create a new USB communication channel
-    pub fn new(port_name: &str, baud_rate: u32, device_id: u8) -> Result<Self, TransactionError> {
-        if device_id > 99 {
-            return Err(TransactionError::InvalidConfiguration(
-                "Kwr103 device id must be in [0; 99]".to_string(),
-            ));
+    pub fn new(
+        port_name: &str,
+        baud_rate: u32,
+        device_id: Option<u8>,
+    ) -> Result<Self, TransactionError> {
+        if let Some(id) = device_id {
+            if id == 0 || id > 99 {
+                return Err(TransactionError::InvalidConfiguration(
+                    "KWR103 RS485 device id must be in [1; 99]".to_string(),
+                ));
+            }
         }
 
         let serial = serialport::new(port_name, baud_rate)
@@ -62,7 +68,7 @@ impl Transport for UsbConnection {
 
 impl From<UsbConnection> for Kwr103 {
     fn from(con: UsbConnection) -> Self {
-        let device_id = Some(con.device_id);
+        let device_id = con.device_id;
         Kwr103 {
             transport: Box::new(con),
             device_id,
@@ -76,7 +82,10 @@ mod tests {
 
     #[test]
     fn creating_new_usb_connection_with_invalid_id() {
-        let usb = UsbConnection::new("/dev/ttyACM0", 115200, 100);
-        assert!(usb.is_err());
+        let lo = UsbConnection::new("/dev/ttyACM0", 115200, Some(0));
+        assert!(lo.is_err_and(|e| e.to_string().contains("RS485 device id")));
+
+        let hi = UsbConnection::new("/dev/ttyACM0", 115200, Some(100));
+        assert!(hi.is_err_and(|e| e.to_string().contains("RS485 device id")));
     }
 }
