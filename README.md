@@ -3,11 +3,16 @@ Remote control Korad KWR103 type programmable DC power supplies via serial/USB o
 
 ## Installation
 
-TBD
+Choose from the following options
+
+- Download the pre-compiled binary matching your target platform from the
+[Releases](https://github.com/weinshec/kwr103/releases) page
+
+- Build the binary from source by cloning this repository and run `cargo build --release`
 
 ## Usage
 
-For **library usage**, please refer to the [InsertLink](https://docs.rs)
+For **library usage**, please refer to the documention at [docs.rs](https://docs.rs/kwr103)
 
 For **command line usage**, please refer to the built-in help
 ```bash
