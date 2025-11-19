@@ -1,6 +1,11 @@
 # KWR103
 Remote control Korad KWR103 type programmable DC power supplies via serial/USB or ethernet/UDP.
 
+---
+> [!IMPORTANT]
+> Development of **this repository has been migrated** to [Codeberg](https://codeberg.org/weinshec/kwr103). Please update your remotes accordingly.
+---
+
 ## Installation
 
 Choose from the following options
